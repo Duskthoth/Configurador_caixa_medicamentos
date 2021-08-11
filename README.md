@@ -1,6 +1,6 @@
 # caixa_remedio_2
 
-A new Flutter project.
+Aplicação destinada a configurar a caixa de medicamentos feita.
 
 ## Getting Started
 
