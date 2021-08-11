@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:caixa_remedio_2/constants/theme_data.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:caixa_remedio_2/helper/alarm_helper.dart';
@@ -6,10 +8,14 @@ import 'package:caixa_remedio_2/models/medicamento_info.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:intl/intl.dart';
 
 class ListaMedicamentos extends StatefulWidget {
+  ListaMedicamentos(BluetoothDevice disp);
+  late BluetoothDevice disp;
+
   @override
   _ListaMedicamentosState createState() => _ListaMedicamentosState();
 }
@@ -37,10 +43,35 @@ class _ListaMedicamentosState extends State<ListaMedicamentos> {
     if (mounted) {
       setState(() {});
       print('Medicamentos carregados');
+      print(_medicamentosAtuais);
     }
   }
 
+  Future<void> _pegaCaracteristicasEEscreveNoDispositivo(
+      BluetoothDevice disp, String data) async {
+    var bluetoothCharacteristic;
+    List<BluetoothService> services = await disp.discoverServices();
+    services.forEach((service) {
+      print("${service.uuid}");
+      List<BluetoothCharacteristic> blueChar = service.characteristics;
+      blueChar.forEach((f) {
+        print("Characteristice =  ${f.uuid}");
+        if (f.uuid
+                .toString()
+                .compareTo("00000052-0000-1000-8000-00805f9b34fb") ==
+            0) {
+          bluetoothCharacteristic = f;
+          print(true);
+        }
+      });
+    });
+
+    bluetoothCharacteristic.write(utf8.encode(data));
+  }
+
   void deleteMedicamento(int id) async {
+    await _pegaCaracteristicasEEscreveNoDispositivo(widget.disp, id.toString());
+
     await _alarmHelper.delete(id);
     await loadMedicamentos();
   }
@@ -67,6 +98,7 @@ class _ListaMedicamentosState extends State<ListaMedicamentos> {
 
   @override
   Widget build(BuildContext context) {
+    //constroe a lista dos mediamentos já cadastrados ou apresenta uma menssagem.
     return Container(
       padding: EdgeInsets.all(25),
       child: Column(
@@ -75,99 +107,135 @@ class _ListaMedicamentosState extends State<ListaMedicamentos> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => loadMedicamentos(),
-              child: ListView.builder(
-                itemCount: _medicamentosAtuais.length,
-                itemBuilder: (BuildContext context, int index) {
-                  var gradientColor = GradientTemplate
-                      .gradientTemplate[
-                          _medicamentosAtuais[index].gradienteColorIndex]
-                      .colors;
-                  return Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 32),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: gradientColor,
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      boxShadow: [
+              child: _medicamentosAtuais.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                          Center(
+                            child: Text(
+                              'Nenhum Medicamento Cadastrado. \n Utiliza o botão abaixo para cadastrar um novo medicamento.',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        ])
+                  : ListView.builder(
+                      itemCount: _medicamentosAtuais.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        var gradientColor = GradientTemplate
+                            .gradientTemplate[
+                                _medicamentosAtuais[index].gradienteColorIndex]
+                            .colors;
+                        return Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 32),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: gradientColor,
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            /* boxShadow: [
                         BoxShadow(
                           color: gradientColor.last.withOpacity(0.4),
                           blurRadius: 8,
                           spreadRadius: 2,
                           offset: Offset(4, 4),
                         ),
-                      ],
-                      borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ],*/
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: <Widget>[
+                                      Icon(
+                                        Icons.label,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                      SizedBox(
+                                        width: 8,
+                                      ),
+                                      Text(
+                                        _medicamentosAtuais[index].nome,
+                                        style: TextStyle(
+                                            fontSize: 24,
+                                            color: Colors.white,
+                                            fontFamily: 'avenir'),
+                                      ),
+                                    ],
+                                  ),
+                                  /* Switch(
+                                    value: true,
+                                    onChanged: (bool value) {},
+                                    activeColor: Colors.white,
+                                  ),*/
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Posição: " +
+                                        _medicamentosAtuais[index]
+                                            .posicaoCaixa
+                                            .toString(),
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontFamily: 'avenir'),
+                                  ),
+                                  SizedBox(
+                                    width: 15,
+                                  ),
+                                  Text(
+                                    "Vezes ao dia: " +
+                                        _medicamentosAtuais[index]
+                                            .vezesAoDia
+                                            .toString(),
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontFamily: 'avenir'),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: <Widget>[
+                                  Text(
+                                    _medicamentosAtuais[index].formatHorarios(),
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'avenir',
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    color: Colors.white,
+                                    onPressed: () {
+                                      deleteMedicamento(
+                                          _medicamentosAtuais[index].id);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: <Widget>[
-                                Icon(
-                                  Icons.label,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                SizedBox(
-                                  width: 8,
-                                ),
-                                Text(
-                                  _medicamentosAtuais[index].nome,
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontFamily: 'avenir'),
-                                ),
-                              ],
-                            ),
-                            Switch(
-                              value: true,
-                              onChanged: (bool value) {},
-                              activeColor: Colors.white,
-                            ),
-                          ],
-                        ),
-                        Text(
-                          "Posição: " +
-                              _medicamentosAtuais[index]
-                                  .posicaoCaixa
-                                  .toString(),
-                          style: TextStyle(
-                              color: Colors.white, fontFamily: 'avenir'),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            Text(
-                              _medicamentosAtuais[index].horarios[0],
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'avenir',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              color: Colors.white,
-                              onPressed: () {
-                                deleteMedicamento(
-                                    _medicamentosAtuais[index].id);
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
             ),
           ),
           /*     FloatingActionButton(

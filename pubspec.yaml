@@ -21,14 +21,17 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  font_awesome_flutter:
-  sqflite:
+  flutter_blue: ^0.8.0
+  font_awesome_flutter: ^9.1.0
+  sqflite: ^2.0.0+3
   dotted_border: ^1.0.5
-  provider: 
+  provider: ^5.0.0
   intl : 
+  flutter_launcher_icons: ^0.9.1
   flutter:
     sdk: flutter
-
+  
+  
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -38,6 +41,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+flutter_icons:
+    android: true
+    ios: true
+    image_path: "assets/ic_launcher.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

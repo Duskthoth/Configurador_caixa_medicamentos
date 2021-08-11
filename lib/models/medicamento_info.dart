@@ -1,4 +1,6 @@
 // @dart=2.9
+import 'package:intl/intl.dart';
+
 class MedicamentoInfo {
   int id;
   String nome;
@@ -37,4 +39,38 @@ class MedicamentoInfo {
         "vezesAoDia": vezesAoDia,
         "gradientColorIndex": gradienteColorIndex,
       };
+
+  Future<void> geraHorarios(DateTime horarioSelecionado) async {
+    DateTime _aux = horarioSelecionado;
+    int _horasAdicionadas = (24 * 60) ~/ vezesAoDia;
+    _aux = _aux.add(Duration(minutes: _horasAdicionadas));
+    for (int i = 0; i < vezesAoDia - 1; i++) {
+      if (_aux != DateTime.tryParse(horarios[0])) {
+        horarios.add(DateFormat("HH:MM").format(_aux));
+        _aux = _aux.add(Duration(minutes: _horasAdicionadas));
+      }
+    }
+    print(horarios);
+  }
+
+  String formatHorarios() {
+    var horariosFormatado = '';
+    for (int i = 0; i < horarios.length; i++) {
+      if (i % 4 != 0 || i == 0)
+        horariosFormatado += horarios[i] + "\t";
+      else
+        horariosFormatado += "\n" + horarios[i] + "\t";
+    }
+    return horariosFormatado;
+  }
+
+  String sendToDevice() {
+    String fim = id.toString() +
+        '_' +
+        posicaoCaixa.toString() +
+        "_" +
+        horarios.join("_");
+
+    return fim;
+  }
 }
